@@ -459,8 +459,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/paperagent/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/paperagent/discussions)
+- **Issues**: [GitHub Issues](https://github.com/bingdongni/paperagent/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/bingdongni/paperagent/discussions)
 - **Email**: 2905153124@qq.com
 
 ---
