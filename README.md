@@ -374,18 +374,6 @@ ARXIV_MAX_RESULTS=50
 
 ---
 
-## 📊 Performance
-
-| Task | Traditional Workflow | PaperAgent | Time Saved |
-|------|---------------------|------------|------------|
-| Literature Review | 40-60 hours | 4-6 hours | **85%** |
-| Experiment Design | 20-30 hours | 2-3 hours | **90%** |
-| Paper Draft | 60-80 hours | 8-12 hours | **85%** |
-| Formatting | 10-15 hours | 1-2 hours | **90%** |
-| **Total** | **130-185 hours** | **15-23 hours** | **~88%** |
-
----
-
 ## 🆚 Comparison
 
 ### vs. Traditional Tools
