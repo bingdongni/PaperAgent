@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: paperagent_postgres
+    environment:
+      POSTGRES_DB: paperagent
+      POSTGRES_USER: paperagent
+      POSTGRES_PASSWORD: paperagent_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - paperagent_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperagent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: paperagent_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - paperagent_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Ollama for Local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: paperagent_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - paperagent_network
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+
+  # PaperAgent API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paperagent_api
+    command: uvicorn paperagent.api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./paperagent:/app/paperagent
+      - ./data:/app/data
+      - ./config:/app/config
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://paperagent:paperagent_password@postgres:5432/paperagent
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - paperagent_network
+
+  # Celery Worker for Background Tasks
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paperagent_worker
+    command: celery -A paperagent.core.tasks worker --loglevel=info
+    volumes:
+      - ./paperagent:/app/paperagent
+      - ./data:/app/data
+      - ./config:/app/config
+    environment:
+      - DATABASE_URL=postgresql://paperagent:paperagent_password@postgres:5432/paperagent
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - paperagent_network
+
+  # Streamlit Web Interface
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: paperagent_web
+    command: streamlit run paperagent/web/app.py --server.port 8501 --server.address 0.0.0.0
+    volumes:
+      - ./paperagent:/app/paperagent
+      - ./data:/app/data
+      - ./config:/app/config
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://api:8000
+      - DATABASE_URL=postgresql://paperagent:paperagent_password@postgres:5432/paperagent
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - api
+    networks:
+      - paperagent_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  ollama_data:
+
+networks:
+  paperagent_network:
+    driver: bridge
